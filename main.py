@@ -18,12 +18,15 @@ osc_client = SimpleUDPClient(OSC_IP, OSC_PORT)
 model = YOLO("yolo11n.pt", verbose=False) 
 
 # Webカメラの起動
-CAPTURE_DEVICE_ID = 2
-cap = cv2.VideoCapture(CAPTURE_DEVICE_ID)
+CAPTURE_DEVICE_ID = 11
+cap = cv2.VideoCapture(CAPTURE_DEVICE_ID, cv2.CAP_DSHOW)
 
 # フレームレート設定（例: 30FPS）
 frame_rate = 30
 prev_time = 0
+
+# 検出の信頼度しきい値
+confidence_threshold = 0.6
 
 while cap.isOpened():
     current_time = time.time()
@@ -36,12 +39,16 @@ while cap.isOpened():
         break
 
     # YOLOで物体検出を行う
-    results = model(frame)
+    results = model.track(frame, conf=confidence_threshold)
 
     # オブジェクト情報をOSCで送信
-    for result in results[0].boxes.data.tolist():
-        x1, y1, x2, y2, confidence, class_id = result
-        label = model.names[int(class_id)]
+    for box in results[0].boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        confidence = box.conf[0].item()
+        class_id = int(box.cls[0].item())
+        if confidence < confidence_threshold:
+            continue  # しきい値未満の検出を無視
+        label = model.names[class_id]
         osc_client.send_message("/object", [label, confidence, x1, y1, x2, y2])
 
     # コンソールの出力を1行で更新
