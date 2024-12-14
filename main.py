@@ -39,7 +39,7 @@ while cap.isOpened():
         break
 
     # YOLOで物体検出を行う
-    results = model.track(frame, conf=confidence_threshold)
+    results = model.track(frame, conf=confidence_threshold, persist=True)
 
     # オブジェクト情報をOSCで送信
     for box in results[0].boxes:
