@@ -75,20 +75,24 @@ while cap.isOpened():
             mask = results[0].masks.data[i].cpu().numpy()  # マスクを取得 (uint8 のまま保持)
             color = label_colors.get(label, (255, 255, 255))  # 定義されていないラベルは白
             for c in range(3):
-                mask_overlay[:, :, c] = mask * color[c] + (1 - mask) * mask_overlay[:, :, c]
+                mask_overlay[:, :, c] = mask * color[c] + mask_overlay[:, :, c]
 
     # 元のフレームとマスクを重ねる
     combined_frame = cv2.addWeighted(frame, 0.7, mask_overlay, 0.3, 0)
 
     # フレームをJPEG形式に変換
-    pil_image = Image.fromarray(cv2.cvtColor(combined_frame, cv2.COLOR_BGR2RGB))
+    pil_frame = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     buffer = io.BytesIO()
-    pil_image.save(buffer, format="JPEG")
+    pil_frame.save(buffer, format="JPEG")
     jpeg_frame = buffer.getvalue()
 
+    pil_mask = Image.fromarray(cv2.cvtColor(mask_overlay, cv2.COLOR_BGR2RGB))
+    buffer = io.BytesIO()
+    pil_mask.save(buffer, format="JPEG")
+    jpeg_mask = buffer.getvalue()
     
     # フレームデータとJPEG画像をMessagePackでシリアライズしてZeroMQで送信
-    packed_data = msgpack.packb({"frame_data": frame_data, "jpeg_frame": jpeg_frame})
+    packed_data = msgpack.packb({"frame_data": frame_data, "frame": jpeg_frame, "mask": jpeg_mask})
     socket.send(packed_data)
 
     # コンソールの出力を1行で更新
