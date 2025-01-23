@@ -48,7 +48,7 @@ pip install python-osc
 
 ```
 conda install pip
-pip install python-osc
+pip install msgpack zmq
 ```
 
 ```python
